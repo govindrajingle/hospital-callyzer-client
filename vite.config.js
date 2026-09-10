@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://hospital-callyzer-production.up.railway.app",
+        // target: "https://hospital-callyzer-production-server.up.railway.app",
+        target: "http://localhost:3000",
         changeOrigin: true
       }
     }

@@ -246,7 +246,7 @@ function App() {
       <header className="topbar">
         <div>
           <div className="eyebrow">ORGANIZATION VIEW</div>
-          <h1>Hospital User Hierarchy</h1>
+          <h1>User Hierarchy</h1>
           <p>Live API data · Users, roles and senior → junior relationships</p>
         </div>
 
