@@ -1,0 +1,12 @@
+:{$PORT} {
+
+    handle /api/* {
+        reverse_proxy http://hospital-callyzer-server.railway.internal:3000
+    }
+
+    handle {
+        root * /app/dist
+        try_files {path} /index.html
+        file_server
+    }
+}
