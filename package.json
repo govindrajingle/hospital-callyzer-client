@@ -9,8 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.x",
+    "@emotion/styled": "^11.x",
+    "@fontsource/inter": "^5.x",
+    "@mui/icons-material": "^7.x",
+    "@mui/material": "^7.x",
+    "@tanstack/react-table": "^8.x",
+    "axios": "^1.x",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.x"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.2",

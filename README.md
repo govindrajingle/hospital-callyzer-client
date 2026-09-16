@@ -1,102 +1,64 @@
-# Hospital User Hierarchy — API Version
+# Sozo Patient Management UI
 
-React + Vite + JavaScript frontend for the Hospital Callyzer API.
+React + Material UI frontend for the Sozo hospital backend
+(`hospital-callyzer-server`). Connects to real, live API endpoints — nothing
+here is mocked.
 
-## Backend
+## Centralized theme
 
-The frontend expects the API server at:
+`src/theme/theme.js` is the single source of truth for colors, typography,
+and component styling (rounded corners, card borders, button style) across
+the entire app. Every future screen should be built using MUI components as-is
+(no inline hardcoded colors) so it automatically stays visually consistent
+with this theme — matching the existing "Hospital User Hierarchy" dashboard's
+blue branded look.
 
-`http://localhost:3000`
-
-Vite proxies `/api/*` to that backend during development.
-
-## API calls
-
-On page load and when Refresh is clicked, the app requests:
-
-```text
-GET /api/hospitals
-GET /api/users
-GET /api/role-masters
-GET /api/users-relationship
-```
-
-These correspond to the API endpoints supplied for:
-
-- Hospitals
-- Users
-- Role Masters
-- User Relationships
-
-The relationship-specific endpoints are not required for the initial hierarchy because the all-relationships endpoint provides the complete relationship set.
-
-## Run
-
-Start the backend first on port 3000, then:
+## Getting started
 
 ```bash
 npm install
+cp .env.example .env   # set VITE_API_BASE_URL if your backend isn't on localhost:3000
 npm run dev
 ```
 
-Open the Vite URL shown in the terminal.
+The backend must be running with `CORS_ORIGINS` including this app's origin
+(`http://localhost:5173` by default) — see the backend's `.env.example`.
 
-## API response normalization
+## What's built
 
-The frontend maps the API camelCase fields to the existing UI model:
+- **Login** (`/login`) — real JWT login against `POST /api/auth/login`,
+  token persisted in localStorage, session restored on page refresh
+- **Patients** (`/patients`) — protected route (redirects to `/login` if not
+  authenticated):
+  - List all patients, paginated from the backend
+  - Search by name or mobile number
+  - Register a new patient, including the full duplicate-detection flow:
+    if the backend returns 409 (same mobile + date of birth already exists),
+    the matching record(s) are shown with a "Register anyway" action that
+    resubmits with `confirmDuplicate: true`
+  - Edit an existing patient
+  - Activate / deactivate a patient
 
-```text
-hospitalName  -> hospital_name
-hospitalCode  -> hospital_code
+## Structure
 
-roleName      -> role_name
-roleCode      -> role_code
-parentRoleId  -> parent_role_id
-
-hospitalId    -> hospital_id
-roleId        -> role_id
-userName      -> username
-fullName      -> full_name
-
-seniorId      -> senior_user_id
-juniorId      -> junior_user_id
+```
+src/
+├── theme/theme.js          → centralized MUI theme
+├── api/                    → axios client + one file per backend resource
+├── context/AuthContext.jsx → login state, persisted across refresh
+├── components/
+│   ├── Layout.jsx           → branded app shell (header, user chip, logout)
+│   ├── ProtectedRoute.jsx   → redirects to /login if not authenticated
+│   └── PatientFormDialog.jsx→ create/edit form + duplicate-warning flow
+├── pages/
+│   ├── LoginPage.jsx
+│   └── PatientsListPage.jsx
+└── App.jsx                  → routing
 ```
 
-It also accepts either a direct array or common response wrappers such as:
+## Not yet built
 
-```json
-[ ... ]
-```
-
-or:
-
-```json
-{ "data": [ ... ] }
-```
-
-and resource-specific wrappers such as `{ "hospitals": [...] }`.
-
-## Hierarchy logic
-
-The user tree is relationship-driven:
-
-```text
-Hospital
-  └── root users
-        └── Senior User
-              └── Junior User
-```
-
-A user is a root when that user does not appear as a `juniorId` in the hospital's relationships.
-
-The role section independently uses:
-
-```text
-RoleMaster.parentRoleId
-```
-
-to display role parent information.
-
-## Important
-
-The backend API specification supplied does not define authentication, pagination, or exact response-envelope formats. The frontend therefore does not assume any of those and uses the GET endpoints directly.
+- Hospital / User / Role management screens (the dashboard in the reference
+  screenshot) — only Patients is built so far
+- Pagination controls in the UI (backend supports `limit`/`offset`, but the
+  list page currently just requests the first 100)
