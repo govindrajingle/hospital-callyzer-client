@@ -40,8 +40,8 @@ export const NAV_SECTIONS = [
   {
     label: "Administration",
     items: [
-      { label: "Users", path: "/users", icon: UsersIcon, builtStatus: "live" },
-      { label: "Roles", path: "/roles", icon: RolesIcon, builtStatus: "live" },
+      { label: "Users", path: "/users", icon: UsersIcon, builtStatus: "live", adminOnly: true },
+      { label: "Roles", path: "/roles", icon: RolesIcon, builtStatus: "live", adminOnly: true },
     ],
   },
 ];

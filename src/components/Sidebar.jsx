@@ -4,11 +4,11 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NAV_SECTIONS } from "../config/navConfig";
+import { isAdminRole } from "./AdminRoute";
+import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.jpg";
 
 const DRAWER_WIDTH = 264;
-// Sampled directly from the logo image's own background so the artwork
-// blends into the sidebar with no visible edge/box around it.
 const SIDEBAR_BG = "#06070C";
 
 export default function Sidebar({ mobileOpen, onMobileClose }) {
@@ -16,11 +16,21 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { user } = useAuth();
+  const isAdmin = isAdminRole(user?.roleCode);
 
   const handleNavigate = (path) => {
     navigate(path);
     if (isMobile) onMobileClose();
   };
+
+  // Admin-only items (Users, Roles) are only shown to admins — not just
+  // blocked at the API level, but not even visible as a temptation for
+  // anyone else.
+  const visibleSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !item.adminOnly || isAdmin),
+  })).filter((section) => section.items.length > 0);
 
   const content = (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: SIDEBAR_BG }}>
@@ -30,8 +40,18 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
 
-      <Box sx={{ overflowY: "auto", py: 1, flexGrow: 1 }}>
-        {NAV_SECTIONS.map((section) => (
+      <Box
+        sx={{
+          overflowY: "auto",
+          py: 1,
+          flexGrow: 1,
+          // Hides the scrollbar visually while keeping scroll functional —
+          // a bare browser scrollbar on a dark sidebar looked out of place.
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        }}
+      >
+        {visibleSections.map((section) => (
           <Box key={section.label} sx={{ mb: 1 }}>
             <Typography
               variant="overline"

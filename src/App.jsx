@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import ComingSoonPage from "./components/ComingSoonPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -13,6 +14,12 @@ const wrapped = (Element) => (
   <ProtectedRoute>
     <Element />
   </ProtectedRoute>
+);
+
+const adminOnly = (Element) => (
+  <AdminRoute>
+    <Element />
+  </AdminRoute>
 );
 
 export default function App() {
@@ -28,8 +35,9 @@ export default function App() {
           <Route path="/patients/new" element={wrapped(PatientFormPage)} />
           <Route path="/patients/:id/edit" element={wrapped(PatientFormPage)} />
 
-          <Route path="/users" element={wrapped(UsersPage)} />
-          <Route path="/roles" element={wrapped(RolesPage)} />
+          {/* Admin-only — enforced here, not just hidden in the sidebar */}
+          <Route path="/users" element={adminOnly(UsersPage)} />
+          <Route path="/roles" element={adminOnly(RolesPage)} />
 
           <Route path="/doctors" element={wrapped(ComingSoonPage)} />
           <Route path="/billing" element={wrapped(ComingSoonPage)} />
