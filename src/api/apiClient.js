@@ -17,6 +17,8 @@ apiClient.interceptors.request.use((config) => {
 
 // If the backend ever says the token is invalid/expired, force a clean
 // logout instead of leaving the app in a broken half-authenticated state.
+// A flag is left behind so the login page can explain *why* the user
+// landed back here, instead of silently bouncing them with no context.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -24,6 +26,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem("sozo_token");
       localStorage.removeItem("sozo_user");
       if (window.location.pathname !== "/login") {
+        sessionStorage.setItem("sozo_session_expired", "1");
         window.location.href = "/login";
       }
     }

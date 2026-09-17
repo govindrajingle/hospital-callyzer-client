@@ -19,7 +19,13 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordShown, setIsPasswordShown] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (sessionStorage.getItem("sozo_session_expired")) {
+      sessionStorage.removeItem("sozo_session_expired");
+      return "Your session expired. Please log in again.";
+    }
+    return "";
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
