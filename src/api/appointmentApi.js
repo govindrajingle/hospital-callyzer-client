@@ -5,6 +5,17 @@ export const getAppointmentTypes = async () => {
   return response.data.data;
 };
 
+// Powers the booking form's slot picker: full business-hours grid for the
+// day with each slot flagged available/unavailable against the doctor's
+// existing bookings. excludeAppointmentId lets edit mode treat the
+// appointment's own current slot as available (not "booked by itself").
+export const getAvailableSlots = async ({ doctorId, date, excludeAppointmentId } = {}) => {
+  const response = await apiClient.get("/appointments/available-slots", {
+    params: { doctorId, date, excludeAppointmentId },
+  });
+  return response.data.data;
+};
+
 export const getAppointments = async ({ view, date } = {}) => {
   const response = await apiClient.get("/appointments", { params: { view, date } });
   return response.data.data;

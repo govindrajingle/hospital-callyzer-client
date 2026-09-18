@@ -61,14 +61,17 @@ export default function PatientsListPage() {
         cell: (info) => (info.getValue() ? info.getValue().substring(0, 10) : "\u2014"),
       }),
       columnHelper.accessor("gender", {
+        id: "gender",
         header: "Gender",
         cell: (info) => info.getValue() || "\u2014",
+        filterFn: (row, columnId, value) => (!value ? true : row.getValue(columnId) === value),
       }),
       columnHelper.accessor("blood_group", {
         header: "Blood group",
         cell: (info) => info.getValue() || "\u2014",
       }),
       columnHelper.accessor("is_active", {
+        id: "is_active",
         header: "Status",
         cell: (info) => (
           <Chip
@@ -78,6 +81,7 @@ export default function PatientsListPage() {
             variant="outlined"
           />
         ),
+        filterFn: (row, columnId, value) => (!value ? true : String(row.getValue(columnId)) === value),
       }),
       columnHelper.display({
         id: "actions",
@@ -140,6 +144,14 @@ export default function PatientsListPage() {
               data={patients}
               searchPlaceholder="Search patients by name, mobile, or MRN..."
               emptyMessage="No patients registered yet."
+              filters={[
+                {
+                  columnId: "gender",
+                  label: "Gender",
+                  options: [...new Set(patients.map((p) => p.gender).filter(Boolean))].map((g) => ({ value: g, label: g })),
+                },
+                { columnId: "is_active", label: "Status", options: [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }] },
+              ]}
             />
           )}
         </Paper>

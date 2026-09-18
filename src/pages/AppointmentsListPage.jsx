@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Paper, Button, Chip, Stack, Typography, IconButton, CircularProgress,
+  Box, Paper, Button, Stack, Typography, IconButton, CircularProgress,
   Tooltip, ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -11,6 +11,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { createColumnHelper } from "@tanstack/react-table";
 import Layout from "../components/Layout";
 import DataTable from "../components/DataTable";
+import StatusChip, { APPOINTMENT_STATUS_OPTIONS } from "../components/StatusChip";
 import * as appointmentApi from "../api/appointmentApi";
 import { useAuth } from "../context/AuthContext";
 import { isAdminRole } from "../components/AdminRoute";
@@ -59,15 +60,18 @@ export default function AppointmentsListPage() {
         header: "Patient",
       }),
       columnHelper.accessor("mrn", { header: "MRN" }),
-      columnHelper.accessor("doctor_name", { header: "Doctor" }),
-      columnHelper.accessor("type", { header: "Type" }),
+      columnHelper.accessor("doctor_name", { id: "doctor_name", header: "Doctor" }),
+      columnHelper.accessor("type", { id: "type", header: "Type" }),
       columnHelper.accessor("payment_mode", {
+        id: "payment_mode",
         header: "Payment",
         cell: (info) => info.getValue().toUpperCase(),
       }),
       columnHelper.accessor("status", {
+        id: "status",
         header: "Status",
-        cell: (info) => <Chip size="small" label={info.getValue()} variant="outlined" />,
+        cell: (info) => <StatusChip status={info.getValue()} />,
+        filterFn: (row, columnId, value) => (!value ? true : row.getValue(columnId) === value),
       }),
       ...(isAdminRole(user?.roleCode)
         ? [columnHelper.display({
@@ -124,6 +128,21 @@ export default function AppointmentsListPage() {
               columns={columns} data={appointments}
               searchPlaceholder="Search appointments..."
               emptyMessage="No appointments in this range."
+              filters={[
+                { columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS },
+                {
+                  columnId: "doctor_name", label: "Doctor",
+                  options: [...new Set(appointments.map((a) => a.doctor_name).filter(Boolean))].map((d) => ({ value: d, label: d })),
+                },
+                {
+                  columnId: "type", label: "Type",
+                  options: [...new Set(appointments.map((a) => a.type).filter(Boolean))].map((t) => ({ value: t, label: t })),
+                },
+                {
+                  columnId: "payment_mode", label: "Payment",
+                  options: [...new Set(appointments.map((a) => a.payment_mode).filter(Boolean))].map((m) => ({ value: m, label: m.toUpperCase() })),
+                },
+              ]}
             />
           )}
         </Paper>

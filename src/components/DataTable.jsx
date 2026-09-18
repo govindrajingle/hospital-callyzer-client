@@ -11,6 +11,9 @@ import {
   TextField,
   InputAdornment,
   Typography,
+  Stack,
+  MenuItem,
+  TablePagination,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -18,6 +21,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
+  getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -26,49 +30,96 @@ import {
 // raw HTML <table> + CSS module. Rebuilt here on real MUI Table components
 // (proper semantics/accessibility) styled to the same row-height and
 // uppercase-header spec their CSS defined, driven by our own theme colors.
+//
+// This is the single shared table used by every list page in the app
+// (patients, appointments, users, roles) — pagination and the generic
+// column-filter row live here so every page that renders records gets
+// both automatically, rather than each page reimplementing them.
+//
+// `filters` (optional): [{ columnId, label, options: [{ value, label }] }]
+// renders one "All <label>" select per entry, wired to that column's
+// react-table filter value. `columnId` must match a column's `id` (or its
+// accessor key when no explicit id was given).
 export default function DataTable({
   columns,
   data,
   searchPlaceholder,
   emptyMessage = "No records found.",
+  filters = [],
+  pageSizeOptions = [10, 25, 50],
+  initialPageSize = 10,
 }) {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: initialPageSize });
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, columnFilters, pagination },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
 
   const rows = table.getRowModel().rows;
+  const totalFilteredRows = table.getFilteredRowModel().rows.length;
 
   return (
     <Box>
-      {searchPlaceholder && (
-        <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider" }}>
-          <TextField
-            size="small"
-            placeholder={searchPlaceholder}
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ width: { xs: "100%", sm: 320 } }}
-          />
-        </Box>
+      {(searchPlaceholder || filters.length > 0) && (
+        <Stack
+          direction="row"
+          spacing={1.5}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider" }}
+        >
+          {searchPlaceholder && (
+            <TextField
+              size="small"
+              placeholder={searchPlaceholder}
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ width: { xs: "100%", sm: 280 } }}
+            />
+          )}
+          {filters.map(({ columnId, label, options }) => {
+            const column = table.getColumn(columnId);
+            if (!column) return null;
+            return (
+              <TextField
+                key={columnId}
+                select
+                size="small"
+                label={label}
+                value={column.getFilterValue() ?? ""}
+                onChange={(e) => column.setFilterValue(e.target.value || undefined)}
+                sx={{ width: { xs: "100%", sm: 180 } }}
+              >
+                <MenuItem value="">All {label}</MenuItem>
+                {options.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </TextField>
+            );
+          })}
+        </Stack>
       )}
 
       <TableContainer sx={{ overflowX: "auto" }}>
@@ -133,6 +184,19 @@ export default function DataTable({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {totalFilteredRows > 0 && (
+        <TablePagination
+          component="div"
+          count={totalFilteredRows}
+          page={table.getState().pagination.pageIndex}
+          rowsPerPage={table.getState().pagination.pageSize}
+          rowsPerPageOptions={pageSizeOptions}
+          onPageChange={(e, page) => table.setPageIndex(page)}
+          onRowsPerPageChange={(e) => table.setPageSize(Number(e.target.value))}
+          sx={{ borderTop: "1px solid", borderColor: "divider" }}
+        />
+      )}
     </Box>
   );
 }

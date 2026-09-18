@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Box, Paper, TextField, Button, Grid, MenuItem, Alert, Typography,
   Autocomplete, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
+  ToggleButton,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import Layout from "../components/Layout";
@@ -32,6 +33,7 @@ export default function AppointmentFormPage() {
 
   const [types, setTypes] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [patient, setPatient] = useState(null);
   const [patientOptions, setPatientOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(isEditMode);
@@ -45,12 +47,23 @@ export default function AppointmentFormPage() {
   // catches that case instead of leaving the user at a dead-end error.
   const [pendingNewType, setPendingNewType] = useState(null);
 
+  // The doctor's business-hours slot grid for the currently-chosen doctor +
+  // date, each flagged available/unavailable — this is what lets the
+  // receptionist pick a genuinely free time instead of guessing one and
+  // hitting a 409 conflict later.
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
   const [form, setForm] = useState({
     patientId: preselectedPatientId || "",
     doctorId: "",
+    // Defaults to whoever is creating the appointment — the most common
+    // case — but is a real staff picker below so it can be reassigned to
+    // whoever actually ends up collecting the payment.
+    receiverId: user?.id || "",
     receiverName: user?.fullName || "",
     slotDate: new Date().toISOString().slice(0, 10),
-    slotTime: "10:00",
+    slotTime: "",
     type: "",
     confirmNewType: false,
     fees: "",
@@ -60,6 +73,7 @@ export default function AppointmentFormPage() {
   useEffect(() => {
     appointmentApi.getAppointmentTypes().then(setTypes);
     userApi.getDoctors().then(setDoctors);
+    userApi.getStaff().then(setStaff);
 
     if (preselectedPatientId) {
       patientApi.getPatientById(preselectedPatientId).then(setPatient);
@@ -70,6 +84,7 @@ export default function AppointmentFormPage() {
         setForm({
           patientId: appointment.patient_id,
           doctorId: appointment.doctor_id,
+          receiverId: appointment.receiver_id || "",
           receiverName: appointment.receiver_name || "",
           slotDate: toDateInput(appointment.slot_start),
           slotTime: toTimeInput(appointment.slot_start),
@@ -88,12 +103,34 @@ export default function AppointmentFormPage() {
     }
   }, [id, isEditMode, preselectedPatientId]);
 
+  // Re-fetches the doctor's available-slots grid whenever the doctor or date
+  // changes, so the time picker below always reflects real availability
+  // instead of letting the receptionist type a time blind. In edit mode the
+  // appointment's own current slot is excluded from the "booked" set so it
+  // still shows up as pickable (editing without changing the time works).
+  useEffect(() => {
+    if (!form.doctorId || !form.slotDate) {
+      setAvailableSlots([]);
+      return;
+    }
+    setIsLoadingSlots(true);
+    appointmentApi
+      .getAvailableSlots({ doctorId: form.doctorId, date: form.slotDate, excludeAppointmentId: id })
+      .then(setAvailableSlots)
+      .finally(() => setIsLoadingSlots(false));
+  }, [form.doctorId, form.slotDate, id]);
+
   const handlePatientSearch = async (query) => {
     if (!query) return;
     setPatientOptions(await patientApi.searchPatients({ name: query, mobile: query, mrn: query }));
   };
 
   const submitAppointment = async (confirmNewType) => {
+    if (!form.slotTime) {
+      setError("Please pick an available time slot for this doctor.");
+      return;
+    }
+
     setError("");
     setIsSubmitting(true);
 
@@ -102,6 +139,7 @@ export default function AppointmentFormPage() {
       const payload = {
         patientId: Number(form.patientId),
         doctorId: Number(form.doctorId),
+        receiverId: form.receiverId ? Number(form.receiverId) : null,
         receiverName: form.receiverName,
         slotStart,
         type: form.type,
@@ -186,25 +224,59 @@ export default function AppointmentFormPage() {
               <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   select label="Doctor" fullWidth required value={form.doctorId}
-                  onChange={(e) => setForm((f) => ({ ...f, doctorId: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, doctorId: e.target.value, slotTime: "" }))}
                   helperText={doctors.length === 0 ? "No doctors found — create a DOCTOR-role user first." : ""}
                 >
                   {doctors.map((d) => <MenuItem key={d.id} value={d.id}>{d.full_name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid size={{ xs: 6, sm: 3 }}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   label="Date" type="date" fullWidth required value={form.slotDate}
-                  onChange={(e) => setForm((f) => ({ ...f, slotDate: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, slotDate: e.target.value, slotTime: "" }))}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
               </Grid>
-              <Grid size={{ xs: 6, sm: 3 }}>
-                <TextField
-                  label="Time" type="time" fullWidth required value={form.slotTime}
-                  onChange={(e) => setForm((f) => ({ ...f, slotTime: e.target.value }))}
-                  slotProps={{ inputLabel: { shrink: true } }}
-                />
+
+              <Grid size={12}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Available time slots{form.slotDate ? ` — ${new Date(`${form.slotDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", day: "2-digit", month: "short" })}` : ""}
+                </Typography>
+                {!form.doctorId ? (
+                  <Typography variant="body2" color="text.secondary">Pick a doctor to see their free slots.</Typography>
+                ) : isLoadingSlots ? (
+                  <Box sx={{ display: "flex", py: 2 }}><CircularProgress size={24} /></Box>
+                ) : availableSlots.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">No slots configured for this day.</Typography>
+                ) : (
+                  <>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {availableSlots.map((slot) => {
+                        const timeLabel = new Date(slot.slotStart).toISOString().slice(11, 16);
+                        const isSelected = form.slotTime === timeLabel;
+                        // A slot that's booked by THIS appointment (edit mode, excluded
+                        // server-side) still shows as available so re-saving without
+                        // changing the time works — everything else booked is disabled.
+                        return (
+                          <ToggleButton
+                            key={timeLabel}
+                            value={timeLabel}
+                            selected={isSelected}
+                            disabled={!slot.isAvailable}
+                            onClick={() => setForm((f) => ({ ...f, slotTime: timeLabel }))}
+                            size="small"
+                            sx={{ minWidth: 76, textTransform: "none" }}
+                          >
+                            {timeLabel}
+                          </ToggleButton>
+                        );
+                      })}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                      Greyed-out times are already booked for this doctor.
+                    </Typography>
+                  </>
+                )}
               </Grid>
 
               <Grid size={12}>
@@ -230,9 +302,28 @@ export default function AppointmentFormPage() {
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
-                  label="Payment collected by" fullWidth value={form.receiverName}
-                  onChange={(e) => setForm((f) => ({ ...f, receiverName: e.target.value }))}
-                />
+                  select label="Payment collected by" fullWidth required value={form.receiverId}
+                  onChange={(e) => {
+                    const selected = staff.find((s) => String(s.id) === String(e.target.value));
+                    setForm((f) => ({
+                      ...f,
+                      receiverId: e.target.value,
+                      receiverName: selected?.full_name || "",
+                    }));
+                  }}
+                  helperText={staff.length === 0 ? "No staff found." : ""}
+                >
+                  {/* Edit mode may point at a since-deactivated staff member who
+                      no longer appears in the active-staff list — keep them
+                      selectable (by name only) so saving the form doesn't
+                      silently drop the original receiver. */}
+                  {form.receiverId && !staff.some((s) => String(s.id) === String(form.receiverId)) && (
+                    <MenuItem value={form.receiverId}>{form.receiverName || "Unknown staff member"}</MenuItem>
+                  )}
+                  {staff.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>{s.full_name}</MenuItem>
+                  ))}
+                </TextField>
               </Grid>
               <Grid size={12}>
                 <Typography variant="caption" color="text.secondary">

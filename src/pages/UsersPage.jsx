@@ -112,16 +112,19 @@ export default function UsersPage() {
         id: "role",
         header: "Role",
         cell: (info) => <Chip size="small" label={info.getValue()} variant="outlined" />,
+        filterFn: (row, columnId, value) => (!value ? true : String(row.original.role_id) === String(value)),
       }),
       columnHelper.accessor((row) => hospitalNameById(row.hospital_id), {
         id: "hospital",
         header: "Hospital",
       }),
       columnHelper.accessor("is_active", {
+        id: "is_active",
         header: "Status",
         cell: (info) => (
           <Chip size="small" label={info.getValue() ? "Active" : "Inactive"} color={info.getValue() ? "success" : "default"} variant="outlined" />
         ),
+        filterFn: (row, columnId, value) => (!value ? true : String(row.getValue(columnId)) === value),
       }),
       columnHelper.display({
         id: "actions",
@@ -165,7 +168,16 @@ export default function UsersPage() {
               <CircularProgress />
             </Box>
           ) : (
-            <DataTable columns={columns} data={users} searchPlaceholder="Search users..." emptyMessage="No users created yet." />
+            <DataTable
+              columns={columns}
+              data={users}
+              searchPlaceholder="Search users..."
+              emptyMessage="No users created yet."
+              filters={[
+                { columnId: "role", label: "Role", options: roles.map((r) => ({ value: r.id, label: r.role_name })) },
+                { columnId: "is_active", label: "Status", options: [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }] },
+              ]}
+            />
           )}
         </Paper>
       </Box>

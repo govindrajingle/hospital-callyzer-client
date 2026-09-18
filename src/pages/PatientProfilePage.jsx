@@ -1,16 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Box, Paper, Typography, Tabs, Tab, Grid, Stack, Button, Chip, CircularProgress,
-  Table, TableHead, TableRow, TableCell, TableBody,
+  Box, Paper, Typography, Tabs, Tab, Grid, Stack, Button, CircularProgress,
 } from "@mui/material";
+import { createColumnHelper } from "@tanstack/react-table";
 import EditIcon from "@mui/icons-material/EditOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import Layout from "../components/Layout";
+import DataTable from "../components/DataTable";
+import StatusChip, { APPOINTMENT_STATUS_OPTIONS } from "../components/StatusChip";
 import * as patientApi from "../api/patientApi";
 import * as appointmentApi from "../api/appointmentApi";
 import { useAuth } from "../context/AuthContext";
+
+const columnHelper = createColumnHelper();
 
 function InfoField({ label, value }) {
   return (
@@ -42,6 +46,56 @@ export default function PatientProfilePage() {
   }, [id]);
 
   const canManageAppointments = ["ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"].includes(user?.roleCode);
+
+  const appointmentColumns = useMemo(
+    () => [
+      columnHelper.accessor("slot_start", {
+        header: "Date & time",
+        cell: (info) => new Date(info.getValue()).toLocaleString(undefined, {
+          day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+        }),
+      }),
+      columnHelper.accessor("doctor_name", { header: "Doctor" }),
+      columnHelper.accessor("type", { id: "type", header: "Type" }),
+      columnHelper.accessor("status", {
+        id: "status",
+        header: "Status",
+        cell: (info) => <StatusChip status={info.getValue()} />,
+        filterFn: (row, columnId, value) => (!value ? true : row.getValue(columnId) === value),
+      }),
+      columnHelper.accessor("fees", {
+        header: "Fees",
+        meta: { align: "right" },
+        cell: (info) => `₹${info.getValue()}`,
+      }),
+    ],
+    [],
+  );
+
+  const billingColumns = useMemo(
+    () => [
+      columnHelper.accessor("slot_start", {
+        header: "Date",
+        cell: (info) => new Date(info.getValue()).toLocaleDateString(),
+      }),
+      columnHelper.accessor("type", { header: "For" }),
+      columnHelper.accessor("payment_mode", {
+        id: "payment_mode",
+        header: "Payment mode",
+        cell: (info) => info.getValue()?.toUpperCase(),
+      }),
+      columnHelper.accessor("receiver_name", {
+        header: "Collected by",
+        cell: (info) => info.getValue() || "—",
+      }),
+      columnHelper.accessor("fees", {
+        header: "Amount",
+        meta: { align: "right" },
+        cell: (info) => `₹${info.getValue()}`,
+      }),
+    ],
+    [],
+  );
 
   if (isLoading || !patient) {
     return (
@@ -108,65 +162,26 @@ export default function PatientProfilePage() {
                   </Button>
                 </Box>
               )}
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date &amp; time</TableCell>
-                    <TableCell>Doctor</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell align="right">Fees</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {appointments.map((a) => (
-                    <TableRow key={a.id} hover>
-                      <TableCell>{new Date(a.slot_start).toLocaleString(undefined, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</TableCell>
-                      <TableCell>{a.doctor_name}</TableCell>
-                      <TableCell>{a.type}</TableCell>
-                      <TableCell><Chip size="small" label={a.status} variant="outlined" /></TableCell>
-                      <TableCell align="right">₹{a.fees}</TableCell>
-                    </TableRow>
-                  ))}
-                  {appointments.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: "text.secondary" }}>No appointments yet.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <DataTable
+                columns={appointmentColumns}
+                data={appointments}
+                emptyMessage="No appointments yet."
+                filters={[{ columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS }]}
+              />
             </Box>
           )}
 
           {tab === 2 && (
             <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>For</TableCell>
-                    <TableCell>Payment mode</TableCell>
-                    <TableCell>Collected by</TableCell>
-                    <TableCell align="right">Amount</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {appointments.map((a) => (
-                    <TableRow key={a.id} hover>
-                      <TableCell>{new Date(a.slot_start).toLocaleDateString()}</TableCell>
-                      <TableCell>{a.type}</TableCell>
-                      <TableCell>{a.payment_mode?.toUpperCase()}</TableCell>
-                      <TableCell>{a.receiver_name || "—"}</TableCell>
-                      <TableCell align="right">₹{a.fees}</TableCell>
-                    </TableRow>
-                  ))}
-                  {appointments.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4, color: "text.secondary" }}>No billing history yet.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <DataTable
+                columns={billingColumns}
+                data={appointments}
+                emptyMessage="No billing history yet."
+                filters={[{
+                  columnId: "payment_mode", label: "Payment",
+                  options: [...new Set(appointments.map((a) => a.payment_mode).filter(Boolean))].map((m) => ({ value: m, label: m.toUpperCase() })),
+                }]}
+              />
             </Box>
           )}
         </Paper>

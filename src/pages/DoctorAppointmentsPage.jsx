@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Box, Paper, Chip, Stack, Typography, IconButton, CircularProgress,
+  Box, Paper, Stack, Typography, IconButton, CircularProgress,
   ToggleButtonGroup, ToggleButton,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -9,6 +9,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { createColumnHelper } from "@tanstack/react-table";
 import Layout from "../components/Layout";
 import DataTable from "../components/DataTable";
+import StatusChip, { APPOINTMENT_STATUS_OPTIONS } from "../components/StatusChip";
 import * as appointmentApi from "../api/appointmentApi";
 
 const columnHelper = createColumnHelper();
@@ -66,10 +67,12 @@ export default function DoctorAppointmentsPage() {
         ),
       }),
       columnHelper.accessor("mrn", { header: "MRN" }),
-      columnHelper.accessor("type", { header: "Type" }),
+      columnHelper.accessor("type", { id: "type", header: "Type" }),
       columnHelper.accessor("status", {
+        id: "status",
         header: "Status",
-        cell: (info) => <Chip size="small" label={info.getValue()} variant="outlined" />,
+        cell: (info) => <StatusChip status={info.getValue()} />,
+        filterFn: (row, columnId, value) => (!value ? true : row.getValue(columnId) === value),
       }),
     ],
     [navigate],
@@ -103,6 +106,13 @@ export default function DoctorAppointmentsPage() {
               columns={columns} data={appointments}
               searchPlaceholder="Search your appointments..."
               emptyMessage="No appointments in this range."
+              filters={[
+                { columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS },
+                {
+                  columnId: "type", label: "Type",
+                  options: [...new Set(appointments.map((a) => a.type).filter(Boolean))].map((t) => ({ value: t, label: t })),
+                },
+              ]}
             />
           )}
         </Paper>

@@ -13,6 +13,13 @@ export const getDoctors = async () => {
   return response.data.data;
 };
 
+// Hospital-scoped staff list for the appointment booking form's "payment
+// collected by" picker (any active staff member, not just doctors).
+export const getStaff = async () => {
+  const response = await apiClient.get("/users/staff");
+  return response.data.data;
+};
+
 export const createUser = async (userData) => {
   const response = await apiClient.post("/users", userData);
   return response.data.data;
