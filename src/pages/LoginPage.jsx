@@ -6,7 +6,7 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../context/AuthContext";
-import logo from "../assets/logo-transparent-test.png";
+import logo from "../assets/logo-transparent.png";
 
 // A rich dark teal, not pure/near black — stays dark enough for the
 // logo's white lettering to read clearly, but reads as "brand teal, dimmed"

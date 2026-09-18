@@ -5,6 +5,14 @@ export const getUsers = async () => {
   return response.data.data;
 };
 
+// Hospital-scoped doctor list for the appointment booking form's doctor
+// dropdown — Receptionist can call this even though the rest of /users is
+// admin-only.
+export const getDoctors = async () => {
+  const response = await apiClient.get("/users/doctors");
+  return response.data.data;
+};
+
 export const createUser = async (userData) => {
   const response = await apiClient.post("/users", userData);
   return response.data.data;

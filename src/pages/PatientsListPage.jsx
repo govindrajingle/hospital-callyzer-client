@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Paper, Button, Chip, Stack, Typography, IconButton, CircularProgress, Tooltip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/EditOutlined";
+import VisibilityIcon from "@mui/icons-material/VisibilityOutlined";
 import BlockIcon from "@mui/icons-material/BlockOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { createColumnHelper } from "@tanstack/react-table";
@@ -86,6 +87,11 @@ export default function PatientsListPage() {
           const patient = row.original;
           return (
             <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Tooltip title="View profile">
+                <IconButton size="small" onClick={() => navigate(`/patients/${patient.id}`)}>
+                  <VisibilityIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
               <Tooltip title="Edit">
                 <IconButton size="small" onClick={() => navigate(`/patients/${patient.id}/edit`)}>
                   <EditIcon fontSize="small" />

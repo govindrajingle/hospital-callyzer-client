@@ -7,6 +7,8 @@ import ReportsIcon from "@mui/icons-material/InsightsOutlined";
 import PrescriptionsIcon from "@mui/icons-material/DescriptionOutlined";
 import UsersIcon from "@mui/icons-material/GroupOutlined";
 import RolesIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import AppointmentsIcon from "@mui/icons-material/EventAvailableOutlined";
+import MyAppointmentsIcon from "@mui/icons-material/CalendarMonthOutlined";
 
 // Single source of truth for the sidebar. `builtStatus: "live"` items have
 // a real page wired to real API data. `builtStatus: "planned"` items route
@@ -24,6 +26,15 @@ export const NAV_SECTIONS = [
       { label: "Patients", path: "/patients", icon: PatientsIcon, builtStatus: "live" },
       { label: "Doctors", path: "/doctors", icon: DoctorsIcon, builtStatus: "planned" },
       { label: "Prescriptions", path: "/prescriptions", icon: PrescriptionsIcon, builtStatus: "planned" },
+    ],
+  },
+  {
+    label: "Scheduling",
+    items: [
+      // Admin/Receptionist browse the full schedule; Doctor sees only
+      // their own (enforced by the backend, not just hidden here).
+      { label: "Appointments", path: "/appointments", icon: AppointmentsIcon, builtStatus: "live", roles: ["ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"] },
+      { label: "My Appointments", path: "/my-appointments", icon: MyAppointmentsIcon, builtStatus: "live", roles: ["DOCTOR"] },
     ],
   },
   {

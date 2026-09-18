@@ -1,14 +1,5 @@
 import {
-  Drawer,
-  Box,
-  Typography,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Chip,
-  Divider,
-  useMediaQuery,
+  Drawer, Box, Typography, List, ListItemButton, ListItemIcon, ListItemText, Chip, Divider, useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,27 +29,17 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   // anyone else.
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => !item.adminOnly || isAdmin),
+    items: section.items.filter((item) => {
+      if (item.adminOnly && !isAdmin) return false;
+      if (item.roles && !item.roles.includes(user?.roleCode)) return false;
+      return true;
+    }),
   })).filter((section) => section.items.length > 0);
 
   const content = (
-    <Box
-      sx={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        bgcolor: SIDEBAR_BG,
-      }}
-    >
-      <Box
-        sx={{ display: "flex", justifyContent: "center", pt: 4, pb: 3, px: 3 }}
-      >
-        <Box
-          component="img"
-          src={logo}
-          alt="Sozo Wellness & Esthetics"
-          sx={{ width: 150, height: "auto" }}
-        />
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: SIDEBAR_BG }}>
+      <Box sx={{ display: "flex", justifyContent: "center", pt: 4, pb: 3, px: 3 }}>
+        <Box component="img" src={logo} alt="Sozo Wellness & Esthetics" sx={{ width: 150, height: "auto" }} />
       </Box>
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
@@ -78,13 +59,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
           <Box key={section.label} sx={{ mb: 1 }}>
             <Typography
               variant="overline"
-              sx={{
-                px: 3,
-                display: "block",
-                mt: 2.5,
-                mb: 0.75,
-                color: "rgba(255,255,255,0.4)",
-              }}
+              sx={{ px: 3, display: "block", mt: 2.5, mb: 0.75, color: "rgba(255,255,255,0.4)" }}
             >
               {section.label}
             </Typography>
@@ -102,9 +77,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                       mb: 0.5,
                       borderRadius: 2,
                       color: "rgba(255,255,255,0.75)",
-                      "& .MuiListItemIcon-root": {
-                        color: "rgba(255,255,255,0.5)",
-                      },
+                      "& .MuiListItemIcon-root": { color: "rgba(255,255,255,0.5)" },
                       "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
                       "&.Mui-selected": {
                         bgcolor: "primary.main",
@@ -119,12 +92,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                     </ListItemIcon>
                     <ListItemText
                       primary={item.label}
-                      slotProps={{
-                        primary: {
-                          fontSize: "0.9rem",
-                          fontWeight: isActive ? 600 : 500,
-                        },
-                      }}
+                      slotProps={{ primary: { fontSize: "0.9rem", fontWeight: isActive ? 600 : 500 } }}
                     />
                     {item.builtStatus === "planned" && (
                       <Chip
@@ -133,9 +101,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
                         sx={{
                           height: 20,
                           fontSize: "0.65rem",
-                          bgcolor: isActive
-                            ? "rgba(255,255,255,0.25)"
-                            : "rgba(255,255,255,0.1)",
+                          bgcolor: isActive ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.1)",
                           color: "rgba(255,255,255,0.85)",
                         }}
                       />
@@ -157,12 +123,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         open={mobileOpen}
         onClose={onMobileClose}
         ModalProps={{ keepMounted: true }}
-        sx={{
-          "& .MuiDrawer-paper": {
-            width: DRAWER_WIDTH,
-            boxSizing: "border-box",
-          },
-        }}
+        sx={{ "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box" } }}
       >
         {content}
       </Drawer>
@@ -175,11 +136,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       sx={{
         width: DRAWER_WIDTH,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
-          width: DRAWER_WIDTH,
-          boxSizing: "border-box",
-          border: "none",
-        },
+        "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box", border: "none" },
       }}
     >
       {content}
