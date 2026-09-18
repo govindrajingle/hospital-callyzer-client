@@ -9,6 +9,7 @@ import UsersIcon from "@mui/icons-material/GroupOutlined";
 import RolesIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import AppointmentsIcon from "@mui/icons-material/EventAvailableOutlined";
 import MyAppointmentsIcon from "@mui/icons-material/CalendarMonthOutlined";
+import ScheduleIcon from "@mui/icons-material/AccessTimeOutlined";
 
 // Single source of truth for the sidebar. `builtStatus: "live"` items have
 // a real page wired to real API data. `builtStatus: "planned"` items route
@@ -35,6 +36,9 @@ export const NAV_SECTIONS = [
       // their own (enforced by the backend, not just hidden here).
       { label: "Appointments", path: "/appointments", icon: AppointmentsIcon, builtStatus: "live", roles: ["ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"] },
       { label: "My Appointments", path: "/my-appointments", icon: MyAppointmentsIcon, builtStatus: "live", roles: ["DOCTOR"] },
+      // A doctor's own consultation-hours master form — sets the working
+      // window + lunch break the appointment slot picker builds from.
+      { label: "My Consultation Hours", path: "/my-schedule", icon: ScheduleIcon, builtStatus: "live", roles: ["DOCTOR"] },
     ],
   },
   {

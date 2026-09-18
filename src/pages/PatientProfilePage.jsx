@@ -52,7 +52,7 @@ export default function PatientProfilePage() {
       columnHelper.accessor("slot_start", {
         header: "Date & time",
         cell: (info) => new Date(info.getValue()).toLocaleString(undefined, {
-          day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+          day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
         }),
       }),
       columnHelper.accessor("doctor_name", { header: "Doctor" }),

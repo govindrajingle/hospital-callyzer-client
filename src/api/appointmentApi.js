@@ -5,10 +5,12 @@ export const getAppointmentTypes = async () => {
   return response.data.data;
 };
 
-// Powers the booking form's slot picker: full business-hours grid for the
-// day with each slot flagged available/unavailable against the doctor's
-// existing bookings. excludeAppointmentId lets edit mode treat the
-// appointment's own current slot as available (not "booked by itself").
+// Powers the booking form's slot picker: this doctor's own consultation-
+// hours grid for the day (their working hours + lunch break — either
+// custom-set via doctorScheduleApi or the clinic default) with each slot
+// flagged available/booked/past/on-break. excludeAppointmentId lets edit
+// mode treat the appointment's own current slot as available (not "booked
+// by itself"). Returns { schedule, slots }.
 export const getAvailableSlots = async ({ doctorId, date, excludeAppointmentId } = {}) => {
   const response = await apiClient.get("/appointments/available-slots", {
     params: { doctorId, date, excludeAppointmentId },

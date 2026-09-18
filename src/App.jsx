@@ -14,6 +14,7 @@ import RolesPage from "./pages/RolesPage";
 import AppointmentsListPage from "./pages/AppointmentsListPage";
 import AppointmentFormPage from "./pages/AppointmentFormPage";
 import DoctorAppointmentsPage from "./pages/DoctorAppointmentsPage";
+import MySchedulePage from "./pages/MySchedulePage";
 
 const wrapped = (Element) => (
   <ProtectedRoute>
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/appointments/new" element={roleOnly(["ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"])(AppointmentFormPage)} />
           <Route path="/appointments/:id/edit" element={adminOnly(AppointmentFormPage)} />
           <Route path="/my-appointments" element={roleOnly(["DOCTOR"])(DoctorAppointmentsPage)} />
+          <Route path="/my-schedule" element={roleOnly(["DOCTOR"])(MySchedulePage)} />
 
           {/* Admin-only — enforced here, not just hidden in the sidebar */}
           <Route path="/users" element={adminOnly(UsersPage)} />

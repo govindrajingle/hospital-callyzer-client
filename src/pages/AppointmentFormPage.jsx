@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Box, Paper, TextField, Button, Grid, MenuItem, Alert, Typography,
   Autocomplete, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions,
-  ToggleButton,
+  ToggleButton, Stack,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import Layout from "../components/Layout";
@@ -20,8 +20,33 @@ const PAYMENT_MODES = [
   { value: "other", label: "Other" },
 ];
 
-const toDateInput = (iso) => new Date(iso).toISOString().slice(0, 10);
-const toTimeInput = (iso) => new Date(iso).toISOString().slice(11, 16);
+// .toISOString() always returns UTC, never the viewer's own clock — using
+// it to pull out "the date"/"the time" silently shows UTC digits labeled
+// as if they were local. These use the Date object's own local getters
+// instead, so what's displayed is whatever wall-clock time the browser
+// itself is set to (IST for this clinic's actual users).
+const pad2 = (n) => String(n).padStart(2, "0");
+const toDateInput = (value) => {
+  const d = new Date(value);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+const toTimeInput = (value) => {
+  const d = new Date(value);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+// Booking is future-only, so the date picker's native min is today.
+const todayInput = toDateInput(new Date());
+
+// The slot grid's underlying value/selection logic stays in 24-hour
+// "HH:MM" (matches toTimeInput and what's sent to the backend) — this is
+// purely for what's printed on each button, since a bare "14:30" reads as
+// ambiguous/no AM-PM to most people.
+const formatTime12h = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+};
 
 export default function AppointmentFormPage() {
   const { id } = useParams();
@@ -47,11 +72,12 @@ export default function AppointmentFormPage() {
   // catches that case instead of leaving the user at a dead-end error.
   const [pendingNewType, setPendingNewType] = useState(null);
 
-  // The doctor's business-hours slot grid for the currently-chosen doctor +
-  // date, each flagged available/unavailable — this is what lets the
-  // receptionist pick a genuinely free time instead of guessing one and
-  // hitting a 409 conflict later.
+  // The doctor's OWN consultation-hours slot grid for the currently-chosen
+  // doctor + date, each flagged available/booked/past/on-break — this is
+  // what lets the receptionist pick a genuinely free time instead of
+  // guessing one and hitting a 409 conflict or an outside-hours rejection.
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [doctorSchedule, setDoctorSchedule] = useState(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const [form, setForm] = useState({
@@ -116,7 +142,10 @@ export default function AppointmentFormPage() {
     setIsLoadingSlots(true);
     appointmentApi
       .getAvailableSlots({ doctorId: form.doctorId, date: form.slotDate, excludeAppointmentId: id })
-      .then(setAvailableSlots)
+      .then(({ schedule, slots }) => {
+        setDoctorSchedule(schedule);
+        setAvailableSlots(slots);
+      })
       .finally(() => setIsLoadingSlots(false));
   }, [form.doctorId, form.slotDate, id]);
 
@@ -234,14 +263,25 @@ export default function AppointmentFormPage() {
                 <TextField
                   label="Date" type="date" fullWidth required value={form.slotDate}
                   onChange={(e) => setForm((f) => ({ ...f, slotDate: e.target.value, slotTime: "" }))}
-                  slotProps={{ inputLabel: { shrink: true } }}
+                  // Booking is future-only — the date picker itself can't even
+                  // open on a day before today (backend also enforces this on
+                  // the actual slotStart, so this is a UX convenience, not the
+                  // only guard).
+                  slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: todayInput } }}
                 />
               </Grid>
 
               <Grid size={12}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
                   Available time slots{form.slotDate ? ` — ${new Date(`${form.slotDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "long", day: "2-digit", month: "short" })}` : ""}
                 </Typography>
+                {doctorSchedule && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+                    Consults {formatTime12h(doctorSchedule.startTime)}–{formatTime12h(doctorSchedule.endTime)}
+                    {doctorSchedule.breakStartTime && ` · Break ${formatTime12h(doctorSchedule.breakStartTime)}–${formatTime12h(doctorSchedule.breakEndTime)}`}
+                    {!doctorSchedule.isCustom && " (clinic default — this doctor hasn't set their own hours)"}
+                  </Typography>
+                )}
                 {!form.doctorId ? (
                   <Typography variant="body2" color="text.secondary">Pick a doctor to see their free slots.</Typography>
                 ) : isLoadingSlots ? (
@@ -252,11 +292,15 @@ export default function AppointmentFormPage() {
                   <>
                     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                       {availableSlots.map((slot) => {
-                        const timeLabel = new Date(slot.slotStart).toISOString().slice(11, 16);
+                        const timeLabel = toTimeInput(slot.slotStart);
                         const isSelected = form.slotTime === timeLabel;
                         // A slot that's booked by THIS appointment (edit mode, excluded
                         // server-side) still shows as available so re-saving without
-                        // changing the time works — everything else booked is disabled.
+                        // changing the time works. Four visual states: light red for
+                        // slots someone else already booked, light orange for the
+                        // doctor's own break window, muted grey for slots that have
+                        // simply already passed today, default/selected for everything
+                        // actually bookable.
                         return (
                           <ToggleButton
                             key={timeLabel}
@@ -265,16 +309,44 @@ export default function AppointmentFormPage() {
                             disabled={!slot.isAvailable}
                             onClick={() => setForm((f) => ({ ...f, slotTime: timeLabel }))}
                             size="small"
-                            sx={{ minWidth: 76, textTransform: "none" }}
+                            sx={{
+                              minWidth: 92,
+                              textTransform: "none",
+                              ...(slot.isBooked && {
+                                bgcolor: "#ffebee",
+                                color: "#c62828",
+                                "&.Mui-disabled": { bgcolor: "#ffebee", color: "#c62828" },
+                              }),
+                              ...(slot.isBreak && !slot.isBooked && {
+                                bgcolor: "#fff3e0",
+                                color: "#e65100",
+                                "&.Mui-disabled": { bgcolor: "#fff3e0", color: "#e65100" },
+                              }),
+                              ...(slot.isPast && !slot.isBooked && !slot.isBreak && {
+                                bgcolor: "action.disabledBackground",
+                                color: "text.disabled",
+                              }),
+                            }}
                           >
-                            {timeLabel}
+                            {slot.isBreak && !slot.isBooked ? "Break" : formatTime12h(timeLabel)}
                           </ToggleButton>
                         );
                       })}
                     </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                      Greyed-out times are already booked for this doctor.
-                    </Typography>
+                    <Stack direction="row" spacing={2.5} sx={{ mt: 1.5 }} flexWrap="wrap">
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: "#ffebee", border: "1px solid #c62828" }} />
+                        <Typography variant="caption" color="text.secondary">Already booked</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: "#fff3e0", border: "1px solid #e65100" }} />
+                        <Typography variant="caption" color="text.secondary">Doctor's break</Typography>
+                      </Stack>
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: "action.disabledBackground", border: "1px solid", borderColor: "divider" }} />
+                        <Typography variant="caption" color="text.secondary">Already passed</Typography>
+                      </Stack>
+                    </Stack>
                   </>
                 )}
               </Grid>

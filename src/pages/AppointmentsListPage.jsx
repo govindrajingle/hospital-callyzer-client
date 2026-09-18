@@ -52,7 +52,7 @@ export default function AppointmentsListPage() {
       columnHelper.accessor("slot_start", {
         header: "Date & time",
         cell: (info) => new Date(info.getValue()).toLocaleString(undefined, {
-          day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+          day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true,
         }),
       }),
       columnHelper.accessor((row) => `${row.patient_first_name} ${row.patient_last_name || ""}`.trim(), {

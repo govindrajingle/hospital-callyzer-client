@@ -26,6 +26,7 @@ const REFERRAL_SOURCES = [
 
 const NAME_PATTERN = /^[a-zA-Z\s.'-]+$/;
 const TEN_DIGIT_PATTERN = /^[0-9]{10}$/;
+const SIX_DIGIT_PATTERN = /^[0-9]{6}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const TERMS_CLAUSES = [
@@ -112,6 +113,17 @@ export default function PatientFormPage() {
     }
   };
 
+  // Used for Mobile / PIN code: restricts typing to digits only and caps the
+  // length live (not just on submit) so the field can never even contain a
+  // letter or a too-long number in the first place.
+  const handleDigitsChange = (field, maxLength) => (e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, maxLength);
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
   // Client-side checks mirror the backend's rules exactly, so the user sees
   // a mistake immediately instead of after a round trip — the backend
   // still re-validates everything regardless (never trust the client alone).
@@ -135,6 +147,12 @@ export default function PatientFormPage() {
 
     if (form.emergencyContactNumber && !TEN_DIGIT_PATTERN.test(form.emergencyContactNumber)) {
       errors.emergencyContactNumber = "Must be exactly 10 digits";
+    }
+
+    // Not mandatory (per registration policy — only name/mobile/street/city/
+    // state are required) but must be exactly 6 digits when provided.
+    if (form.pinCode && !SIX_DIGIT_PATTERN.test(form.pinCode)) {
+      errors.pinCode = "Must be exactly 6 digits";
     }
 
     if (!isEditMode && !form.consentTerms) {
@@ -281,8 +299,9 @@ export default function PatientFormPage() {
                 label="Mobile" fullWidth required
                 helperText={fieldErrors.mobile || "10 digits"}
                 error={Boolean(fieldErrors.mobile)}
-                value={form.mobile} onChange={handleChange("mobile")}
+                value={form.mobile} onChange={handleDigitsChange("mobile", 10)}
                 disabled={duplicates !== null}
+                slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 10 } }}
               />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
@@ -325,7 +344,13 @@ export default function PatientFormPage() {
               <TextField label="State" fullWidth required value={form.state} onChange={handleChange("state")} error={Boolean(fieldErrors.state)} helperText={fieldErrors.state} />
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <TextField label="PIN code" fullWidth value={form.pinCode} onChange={handleChange("pinCode")} />
+              <TextField
+                label="PIN code" fullWidth
+                helperText={fieldErrors.pinCode || "6 digits (optional)"}
+                error={Boolean(fieldErrors.pinCode)}
+                value={form.pinCode} onChange={handleDigitsChange("pinCode", 6)}
+                slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 6 } }}
+              />
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
               <TextField label="Country" fullWidth value={form.country} onChange={handleChange("country")} />
