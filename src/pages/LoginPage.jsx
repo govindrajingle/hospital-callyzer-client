@@ -8,7 +8,6 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo-transparent.png";
 import tomcatdevsIconWhite from "../assets/tomcatdevs/tomcatdevs-icon-white.png";
-import tomcatdevsIconInk from "../assets/tomcatdevs/tomcatdevs-icon-ink.png";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -47,38 +46,55 @@ export default function LoginPage() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex" }}>
-      {/* Left brand panel — hidden on small screens */}
+    // Column on mobile/tablet (brand banner on top, form below, page flows
+    // naturally top-to-bottom), row on desktop (side-by-side panels). The
+    // old approach hid the brand panel entirely below `md` and instead
+    // dropped a small rounded logo box into the vertically-centered form
+    // column — on a real phone that left large empty margins above and
+    // below and read as a stray floating card, not a designed page.
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: { xs: "column", md: "row" } }}>
+      {/* Brand panel — a full-height side panel on desktop, a full-width
+          top banner on mobile/tablet (same background, same content, just
+          not vertically centered in the viewport on small screens). */}
       <Box
         sx={{
-          display: { xs: "none", md: "flex" },
-          flex: 1,
+          flex: { md: 1 },
           bgcolor: PANEL_BG,
           position: "relative",
           overflow: "hidden",
+          display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-          p: 6,
+          justifyContent: { xs: "flex-start", md: "center" },
+          py: { xs: 5, sm: 6, md: 6 },
+          px: { xs: 4, md: 6 },
         }}
       >
         <Box sx={{ position: "absolute", top: -80, left: -80, width: 320, height: 320, borderRadius: "50%", bgcolor: "primary.main", opacity: 0.25, filter: "blur(60px)" }} />
         <Box sx={{ position: "absolute", bottom: -100, right: -60, width: 380, height: 380, borderRadius: "50%", bgcolor: "primary.main", opacity: 0.18, filter: "blur(70px)" }} />
 
-        <Box component="img" src={logo} alt="Sozo Wellness & Esthetics" sx={{ width: 300, maxWidth: "70%", position: "relative", zIndex: 1 }} />
+        <Box component="img" src={logo} alt="Sozo Wellness & Esthetics" sx={{ width: { xs: 200, sm: 240, md: 300 }, maxWidth: "70%", position: "relative", zIndex: 1 }} />
 
         <Typography
           variant="body1"
-          sx={{ color: "rgba(255,255,255,0.7)", mt: 4, maxWidth: 380, textAlign: "center", position: "relative", zIndex: 1 }}
+          sx={{ color: "rgba(255,255,255,0.7)", mt: { xs: 2.5, md: 4 }, maxWidth: 380, textAlign: "center", position: "relative", zIndex: 1 }}
         >
           Every patient, every visit, every record — organised in one place, built around how Sozo actually works.
         </Typography>
 
-        {/* Footer: a copyright line plus a quiet one-line agency credit —
-            the pairing (and sentence case, not an uppercase label) is what
-            makes it read as a standard product footer rather than a badge
-            calling attention to itself. */}
-        <Box sx={{ position: "absolute", bottom: 28, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, zIndex: 1 }}>
+        {/* Footer: a copyright line plus a quiet one-line agency credit.
+            On desktop the panel is full viewport height, so this is pinned
+            to the bottom; on mobile the panel is only as tall as its
+            content, so the same footer sits in normal flow a bit below
+            the tagline instead of being absolutely positioned. */}
+        <Box
+          sx={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, zIndex: 1,
+            mt: { xs: 4, md: 0 },
+            position: { xs: "static", md: "absolute" },
+            bottom: { md: 28 }, left: { md: 0 }, right: { md: 0 },
+          }}
+        >
           <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.35)" }}>
             {"©"} {CURRENT_YEAR} Sozo Wellness & Esthetics
           </Typography>
@@ -91,7 +107,7 @@ export default function LoginPage() {
         </Box>
       </Box>
 
-      {/* Right form panel */}
+      {/* Form panel */}
       <Box
         sx={{
           flex: { xs: 1, md: "0 0 480px" },
@@ -100,16 +116,10 @@ export default function LoginPage() {
           justifyContent: "center",
           bgcolor: "background.paper",
           px: { xs: 3, sm: 6 },
+          py: { xs: 5, md: 0 },
         }}
       >
         <Box sx={{ width: "100%", maxWidth: 360 }}>
-          {/* Logo shown here only on mobile, where the left panel is hidden */}
-          <Box sx={{ display: { xs: "flex", md: "none" }, justifyContent: "center", mb: 5 }}>
-            <Box sx={{ bgcolor: PANEL_BG, borderRadius: 2, p: 2.5, display: "flex", justifyContent: "center" }}>
-              <Box component="img" src={logo} alt="Sozo" sx={{ width: 160, height: "auto" }} />
-            </Box>
-          </Box>
-
           <Typography variant="h4" fontWeight={600} gutterBottom>
             Welcome back
           </Typography>
@@ -162,21 +172,6 @@ export default function LoginPage() {
               <Button type="submit" fullWidth variant="contained" size="large" disabled={isSubmitting} sx={{ mt: 1 }}>
                 {isSubmitting ? "Signing in\u2026" : "Log In"}
               </Button>
-            </Stack>
-          </Box>
-
-          {/* On mobile the dark brand panel (with its own footer) is
-              hidden, so the same copyright + credit pairing is repeated
-              here instead. */}
-          <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", alignItems: "center", gap: 0.5, mt: 6 }}>
-            <Typography variant="caption" color="text.disabled">
-              {"©"} {CURRENT_YEAR} Sozo Wellness & Esthetics
-            </Typography>
-            <Stack direction="row" alignItems="center" spacing={0.75}>
-              <Box component="img" src={tomcatdevsIconInk} alt="" sx={{ height: 12, width: "auto", opacity: 0.6 }} />
-              <Typography variant="caption" color="text.secondary">
-                Built by <Box component="span" sx={{ fontWeight: 600 }}>tomcatdevs</Box>
-              </Typography>
             </Stack>
           </Box>
         </Box>

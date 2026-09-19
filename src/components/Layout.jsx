@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { AppBar, Toolbar, Typography, Box, Chip, Button, IconButton, Avatar, Tooltip, useMediaQuery } from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Button, IconButton, Avatar, Stack, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Sidebar, { DRAWER_WIDTH } from "./Sidebar";
@@ -31,6 +30,28 @@ export default function Layout({ title, subtitle, children }) {
 
   const roleLabel = formatRoleLabel(user?.roleCode);
 
+  const identity = (
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
+      <Avatar sx={{ width: 32, height: 32, fontSize: "0.8rem", bgcolor: "primary.main", flexShrink: 0 }}>
+        {(user?.fullName || "?").charAt(0).toUpperCase()}
+      </Avatar>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography noWrap sx={{ fontSize: "0.8rem", fontWeight: 600, lineHeight: 1.2 }}>
+          {user?.fullName || ""}
+        </Typography>
+        <Typography noWrap sx={{ fontSize: "0.7rem", color: "text.secondary", lineHeight: 1.2 }}>
+          {roleLabel}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+
+  const logoutButton = (
+    <Button variant="outlined" onClick={handleLogout} size={isMobile ? "small" : "medium"} sx={{ flexShrink: 0 }}>
+      Log out
+    </Button>
+  );
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
       <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
@@ -41,15 +62,28 @@ export default function Layout({ title, subtitle, children }) {
           color="transparent"
           sx={{ bgcolor: "background.paper", borderBottom: "1px solid", borderColor: "divider" }}
         >
-          <Toolbar sx={{ py: 1.5, gap: 1.5 }}>
+          {/* Below `md`, the title/subtitle plus who's-logged-in plus Log
+              out button don't fit on one line without crowding or
+              truncating each other (a long page title like "Patient
+              Management" made this worse). Splitting into two rows on
+              mobile \u2014 title row, then a full-width identity+logout row \u2014
+              gives every piece its own space instead of fighting for one
+              cramped row. Desktop keeps the original single-row layout. */}
+          <Toolbar
+            sx={{
+              py: 1.5, gap: 1,
+              flexWrap: { xs: "wrap", md: "nowrap" },
+              alignItems: "center",
+            }}
+          >
             {isMobile && (
-              <IconButton onClick={() => setMobileOpen(true)} edge="start">
+              <IconButton onClick={() => setMobileOpen(true)} edge="start" sx={{ flexShrink: 0 }}>
                 <MenuIcon />
               </IconButton>
             )}
 
             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: "0.08em" }}>
+              <Typography variant="overline" color="text.secondary" noWrap sx={{ letterSpacing: "0.08em", display: "block" }}>
                 {subtitle}
               </Typography>
               <Typography variant="h5" fontWeight={600} noWrap>
@@ -57,33 +91,18 @@ export default function Layout({ title, subtitle, children }) {
               </Typography>
             </Box>
 
-            {/* Who's logged in has to be visible on every screen size, not
-                just desktop \u2014 a mobile user previously saw nothing but a
-                Log out button and had no way to tell which account/role
-                they were in. On narrow screens a single avatar (tap/long-
-                press for the tooltip with full name+role) keeps the header
-                from getting cramped next to the title and Log out button;
-                the full name+role chip takes over from sm up where there's
-                room for it. */}
-            <Tooltip title={user ? `${user.fullName} \u00B7 ${roleLabel}` : ""}>
-              <Avatar
-                sx={{
-                  width: 34, height: 34, fontSize: "0.85rem", bgcolor: "primary.main",
-                  mr: { xs: 1, sm: 2 }, display: { xs: "flex", sm: "none" }, flexShrink: 0,
-                }}
-              >
-                {(user?.fullName || "?").charAt(0).toUpperCase()}
-              </Avatar>
-            </Tooltip>
-            <Chip
-              icon={<PersonOutlineIcon />}
-              label={user ? `${user.fullName} \u00B7 ${roleLabel}` : ""}
-              variant="outlined"
-              sx={{ mr: 2, display: { xs: "none", sm: "flex" } }}
-            />
-            <Button variant="outlined" onClick={handleLogout} size={isMobile ? "small" : "medium"}>
-              Log out
-            </Button>
+            {/* Desktop: identity + logout inline on the same row. */}
+            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 2 }}>
+              {identity}
+              {logoutButton}
+            </Box>
+
+            {/* Mobile: their own full-width row below the title, so who's
+                logged in is always plainly visible without crowding. */}
+            <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
+              {identity}
+              {logoutButton}
+            </Box>
           </Toolbar>
         </AppBar>
 
