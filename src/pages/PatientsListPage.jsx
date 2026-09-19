@@ -9,6 +9,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { createColumnHelper } from "@tanstack/react-table";
 import Layout from "../components/Layout";
 import DataTable from "../components/DataTable";
+import MrnBadge from "../components/MrnBadge";
 import * as patientApi from "../api/patientApi";
 
 const columnHelper = createColumnHelper();
@@ -21,7 +22,10 @@ export default function PatientsListPage() {
   const loadPatients = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data } = await patientApi.getPatients({ limit: 100, offset: 0 });
+      // Fetch inactive patients too — otherwise a deactivated patient would
+      // vanish from every list with no row left to click "Activate" on.
+      // The Status filter below (Active/Inactive) is how they stay findable.
+      const { data } = await patientApi.getPatients({ limit: 100, offset: 0, includeInactive: true });
       setPatients(data);
     } finally {
       setIsLoading(false);
@@ -46,8 +50,8 @@ export default function PatientsListPage() {
       columnHelper.accessor("mrn", {
         header: "MRN",
         cell: (info) => (
-          <Typography variant="body2" fontWeight={700} color="primary.main">
-            {info.getValue()}
+          <Typography variant="body2" component="div">
+            <MrnBadge value={info.getValue()} />
           </Typography>
         ),
       }),
@@ -152,6 +156,8 @@ export default function PatientsListPage() {
                 },
                 { columnId: "is_active", label: "Status", options: [{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }] },
               ]}
+              getRowSx={(patient) => (!patient.is_active ? { opacity: 0.55 } : undefined)}
+              onRowClick={(patient) => navigate(`/patients/${patient.id}`)}
             />
           )}
         </Paper>

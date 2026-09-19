@@ -48,6 +48,8 @@ export default function DataTable({
   filters = [],
   pageSizeOptions = [10, 25, 50],
   initialPageSize = 10,
+  getRowSx,
+  onRowClick,
 }) {
   const [sorting, setSorting] = useState([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -168,12 +170,24 @@ export default function DataTable({
               </TableRow>
             ) : (
               rows.map((row) => (
-                <TableRow key={row.id} hover>
+                <TableRow
+                  key={row.id}
+                  hover
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  sx={{
+                    cursor: onRowClick ? "pointer" : "default",
+                    ...(getRowSx ? getRowSx(row.original) : undefined),
+                  }}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
                       align={cell.column.columnDef.meta?.align || "left"}
                       sx={{ height: 60 }}
+                      // The actions column holds its own buttons (edit,
+                      // deactivate, etc.) — a click there must not also
+                      // trigger the row's own "view more" navigation.
+                      onClick={cell.column.id === "actions" ? (e) => e.stopPropagation() : undefined}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>

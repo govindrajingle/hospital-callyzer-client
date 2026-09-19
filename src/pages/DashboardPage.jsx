@@ -8,7 +8,6 @@ import {
   Stack,
   CircularProgress,
   Chip,
-  Divider,
   Avatar,
   CardActionArea,
 } from "@mui/material";
@@ -23,7 +22,10 @@ import PrescriptionsIcon from "@mui/icons-material/DescriptionOutlined";
 import PersonAddIcon from "@mui/icons-material/PersonAddOutlined";
 import EventAvailableIcon from "@mui/icons-material/EventAvailableOutlined";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
+import { createColumnHelper } from "@tanstack/react-table";
 import Layout from "../components/Layout";
+import DataTable from "../components/DataTable";
+import MrnBadge from "../components/MrnBadge";
 import { useAuth } from "../context/AuthContext";
 import * as patientApi from "../api/patientApi";
 import * as userApi from "../api/userApi";
@@ -86,6 +88,37 @@ function StatCard({ icon: Icon, label, value, isLoading, color = "primary.main" 
   );
 }
 
+const recentPatientsColumnHelper = createColumnHelper();
+
+const recentPatientsColumns = [
+  recentPatientsColumnHelper.accessor((row) => `${row.first_name} ${row.last_name || ""}`.trim(), {
+    id: "name",
+    header: "Patient",
+    cell: (info) => {
+      const p = info.row.original;
+      return (
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 36, height: 36, fontSize: "0.9rem" }}>
+            {(p.first_name || "?").charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography fontWeight={600} noWrap>{p.first_name} {p.last_name || ""}</Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>{p.mobile}</Typography>
+          </Box>
+        </Stack>
+      );
+    },
+  }),
+  recentPatientsColumnHelper.accessor("mrn", {
+    header: "MRN / PRN",
+    cell: (info) => <MrnBadge value={info.getValue()} />,
+  }),
+  recentPatientsColumnHelper.accessor("created_at", {
+    header: "Registered",
+    cell: (info) => (info.getValue() ? new Date(info.getValue()).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—"),
+  }),
+];
+
 function PlaceholderCard({ icon: Icon, label }) {
   return (
     <Paper sx={{ p: 3, height: "100%", opacity: 0.65 }}>
@@ -131,7 +164,7 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       const [patientsRes, usersRes, rolesRes, hospitalsRes] = await Promise.all([
-        patientApi.getPatients({ limit: 5, offset: 0 }),
+        patientApi.getPatients({ limit: 25, offset: 0 }),
         userApi.getUsers(),
         rolemasterApi.getRoles(),
         hospitalApi.getHospitals(),
@@ -217,7 +250,7 @@ export default function DashboardPage() {
         Here’s what’s happening across your hospital right now.
       </Typography>
 
-      <Grid container spacing={3} mb={5}>
+      <Grid container spacing={3} sx={{ mb: 5 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard icon={PatientsIcon} label="Total patients" value={stats.patients} isLoading={isLoading} />
         </Grid>
@@ -235,7 +268,7 @@ export default function DashboardPage() {
       <Typography variant="overline" color="text.secondary" sx={{ mb: 1.5, display: "block" }}>
         Not built yet — shown honestly, not faked
       </Typography>
-      <Grid container spacing={3} mb={5}>
+      <Grid container spacing={3} sx={{ mb: 5 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <PlaceholderCard icon={BillingIcon} label="Billing this month" />
         </Grid>
@@ -250,47 +283,25 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-        <Typography variant="h6" fontWeight={600} gutterBottom>
-          Recently registered patients
-        </Typography>
-        <Divider sx={{ mb: 1 }} />
+      <Paper sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+        <Box sx={{ p: { xs: 2.5, sm: 3.5 }, pb: 0 }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            Recently registered patients
+          </Typography>
+        </Box>
         {isLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
             <CircularProgress size={24} />
           </Box>
-        ) : recentPatients.length === 0 ? (
-          <Typography color="text.secondary" sx={{ py: 3 }}>
-            No patients registered yet.
-          </Typography>
         ) : (
-          <Stack divider={<Divider />} spacing={0}>
-            {recentPatients.map((p) => (
-              <Stack
-                key={p.id}
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                spacing={2}
-                py={2.5}
-              >
-                <Stack direction="row" alignItems="center" spacing={2} sx={{ minWidth: 0 }}>
-                  <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40, fontSize: "0.95rem" }}>
-                    {(p.first_name || "?").charAt(0).toUpperCase()}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography fontWeight={600} noWrap>
-                      {p.first_name} {p.last_name || ""}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-                      {p.mobile}
-                    </Typography>
-                  </Box>
-                </Stack>
-                <Chip label={p.mrn} size="small" color="primary" variant="outlined" sx={{ flexShrink: 0 }} />
-              </Stack>
-            ))}
-          </Stack>
+          <DataTable
+            columns={recentPatientsColumns}
+            data={recentPatients}
+            emptyMessage="No patients registered yet."
+            initialPageSize={5}
+            pageSizeOptions={[5, 10, 25]}
+            onRowClick={(patient) => navigate(`/patients/${patient.id}`)}
+          />
         )}
       </Paper>
     </Layout>

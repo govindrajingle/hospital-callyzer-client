@@ -7,6 +7,10 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo-transparent.png";
+import tomcatdevsIconWhite from "../assets/tomcatdevs/tomcatdevs-icon-white.png";
+import tomcatdevsIconInk from "../assets/tomcatdevs/tomcatdevs-icon-ink.png";
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 // A rich dark teal, not pure/near black — stays dark enough for the
 // logo's white lettering to read clearly, but reads as "brand teal, dimmed"
@@ -69,6 +73,22 @@ export default function LoginPage() {
         >
           Every patient, every visit, every record — organised in one place, built around how Sozo actually works.
         </Typography>
+
+        {/* Footer: a copyright line plus a quiet one-line agency credit —
+            the pairing (and sentence case, not an uppercase label) is what
+            makes it read as a standard product footer rather than a badge
+            calling attention to itself. */}
+        <Box sx={{ position: "absolute", bottom: 28, left: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5, zIndex: 1 }}>
+          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.35)" }}>
+            {"©"} {CURRENT_YEAR} Sozo Wellness & Esthetics
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <Box component="img" src={tomcatdevsIconWhite} alt="" sx={{ height: 13, width: "auto", opacity: 0.5 }} />
+            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)" }}>
+              Built by <Box component="span" sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>tomcatdevs</Box>
+            </Typography>
+          </Stack>
+        </Box>
       </Box>
 
       {/* Right form panel */}
@@ -142,6 +162,21 @@ export default function LoginPage() {
               <Button type="submit" fullWidth variant="contained" size="large" disabled={isSubmitting} sx={{ mt: 1 }}>
                 {isSubmitting ? "Signing in\u2026" : "Log In"}
               </Button>
+            </Stack>
+          </Box>
+
+          {/* On mobile the dark brand panel (with its own footer) is
+              hidden, so the same copyright + credit pairing is repeated
+              here instead. */}
+          <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", alignItems: "center", gap: 0.5, mt: 6 }}>
+            <Typography variant="caption" color="text.disabled">
+              {"©"} {CURRENT_YEAR} Sozo Wellness & Esthetics
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Box component="img" src={tomcatdevsIconInk} alt="" sx={{ height: 12, width: "auto", opacity: 0.6 }} />
+              <Typography variant="caption" color="text.secondary">
+                Built by <Box component="span" sx={{ fontWeight: 600 }}>tomcatdevs</Box>
+              </Typography>
             </Stack>
           </Box>
         </Box>

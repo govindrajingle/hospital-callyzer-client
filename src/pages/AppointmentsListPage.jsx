@@ -128,6 +128,7 @@ export default function AppointmentsListPage() {
               columns={columns} data={appointments}
               searchPlaceholder="Search appointments..."
               emptyMessage="No appointments in this range."
+              onRowClick={(appointment) => navigate(`/patients/${appointment.patient_id}`)}
               filters={[
                 { columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS },
                 {

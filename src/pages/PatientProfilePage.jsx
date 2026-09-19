@@ -9,10 +9,12 @@ import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import Layout from "../components/Layout";
 import DataTable from "../components/DataTable";
+import MrnBadge from "../components/MrnBadge";
 import StatusChip, { APPOINTMENT_STATUS_OPTIONS } from "../components/StatusChip";
 import * as patientApi from "../api/patientApi";
 import * as appointmentApi from "../api/appointmentApi";
 import { useAuth } from "../context/AuthContext";
+import { isAdminRole } from "../components/AdminRoute";
 
 const columnHelper = createColumnHelper();
 
@@ -46,6 +48,10 @@ export default function PatientProfilePage() {
   }, [id]);
 
   const canManageAppointments = ["ADMIN", "HOSPITAL_ADMIN", "RECEPTIONIST"].includes(user?.roleCode);
+  // Only Admin/Hospital Admin can actually reach the appointment edit page
+  // (/appointments/:id/edit is admin-only) — for anyone else, a row here
+  // already shows everything there is to see, so it isn't made clickable.
+  const canEditAppointments = isAdminRole(user?.roleCode);
 
   const appointmentColumns = useMemo(
     () => [
@@ -108,7 +114,10 @@ export default function PatientProfilePage() {
   }
 
   return (
-    <Layout title={`${patient.first_name} ${patient.last_name || ""}`} subtitle={`${patient.mrn} · ${patient.mobile}`}>
+    <Layout
+      title={`${patient.first_name} ${patient.last_name || ""}`}
+      subtitle={<><MrnBadge value={patient.mrn} sx={{ fontSize: "inherit" }} /> · {patient.mobile}</>}
+    >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/patients")}>
@@ -148,7 +157,12 @@ export default function PatientProfilePage() {
                     value={patient.emergency_contact_name && `${patient.emergency_contact_name} — ${patient.emergency_contact_number || ""}`}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6, md: 4 }}><InfoField label="Referred by MRN/PRN" value={patient.referral_patient_mrn} /></Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <InfoField
+                    label="Referred by MRN/PRN"
+                    value={patient.referral_patient_mrn ? <MrnBadge value={patient.referral_patient_mrn} /> : null}
+                  />
+                </Grid>
               </Grid>
             </Box>
           )}
@@ -167,6 +181,7 @@ export default function PatientProfilePage() {
                 data={appointments}
                 emptyMessage="No appointments yet."
                 filters={[{ columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS }]}
+                onRowClick={canEditAppointments ? (appt) => navigate(`/appointments/${appt.id}/edit`) : undefined}
               />
             </Box>
           )}
@@ -181,6 +196,7 @@ export default function PatientProfilePage() {
                   columnId: "payment_mode", label: "Payment",
                   options: [...new Set(appointments.map((a) => a.payment_mode).filter(Boolean))].map((m) => ({ value: m, label: m.toUpperCase() })),
                 }]}
+                onRowClick={canEditAppointments ? (appt) => navigate(`/appointments/${appt.id}/edit`) : undefined}
               />
             </Box>
           )}

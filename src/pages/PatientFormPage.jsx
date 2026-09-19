@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBackOutlined";
 import Layout from "../components/Layout";
+import MrnBadge from "../components/MrnBadge";
 import * as patientApi from "../api/patientApi";
 
 const GENDERS = ["Male", "Female", "Other"];
@@ -220,7 +221,7 @@ export default function PatientFormPage() {
         {mrn && (
           <Box sx={{ mb: 4 }}>
             <Typography variant="overline" color="text.secondary">Patient code</Typography>
-            <Typography variant="h6" fontWeight={700} color="primary.main">{mrn}</Typography>
+            <Typography variant="h6" component="div"><MrnBadge value={mrn} sx={{ fontSize: "inherit" }} /></Typography>
           </Box>
         )}
 
@@ -242,7 +243,10 @@ export default function PatientFormPage() {
             <List dense disablePadding>
               {duplicates.map((d) => (
                 <ListItem key={d.id} disableGutters>
-                  <ListItemText primary={`${d.first_name} ${d.last_name || ""} — ${d.mrn}`} secondary={`Mobile: ${d.mobile}`} />
+                  <ListItemText
+                    primary={<>{d.first_name} {d.last_name || ""} — <MrnBadge value={d.mrn} /></>}
+                    secondary={`Mobile: ${d.mobile}`}
+                  />
                 </ListItem>
               ))}
             </List>

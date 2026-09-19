@@ -1,8 +1,8 @@
 import apiClient from "./apiClient";
 
-export const getPatients = async ({ limit = 50, offset = 0 } = {}) => {
+export const getPatients = async ({ limit = 50, offset = 0, includeInactive = false } = {}) => {
   const response = await apiClient.get("/patients", {
-    params: { limit, offset },
+    params: { limit, offset, includeInactive: includeInactive || undefined },
   });
   return response.data; // { success, data, pagination }
 };

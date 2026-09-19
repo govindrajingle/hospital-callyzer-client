@@ -56,12 +56,11 @@ export default function DoctorAppointmentsPage() {
       columnHelper.accessor((row) => `${row.patient_first_name} ${row.patient_last_name || ""}`.trim(), {
         id: "patient",
         header: "Patient",
+        // The whole row now navigates to this patient's profile (see
+        // onRowClick below) — keeping the name styled like a link signals
+        // that without a redundant nested click handler.
         cell: (info) => (
-          <Typography
-            component="button"
-            onClick={() => navigate(`/patients/${info.row.original.patient_id}`)}
-            sx={{ border: 0, background: "none", p: 0, cursor: "pointer", color: "primary.main", fontWeight: 600 }}
-          >
+          <Typography sx={{ color: "primary.main", fontWeight: 600 }}>
             {info.getValue()}
           </Typography>
         ),
@@ -106,6 +105,7 @@ export default function DoctorAppointmentsPage() {
               columns={columns} data={appointments}
               searchPlaceholder="Search your appointments..."
               emptyMessage="No appointments in this range."
+              onRowClick={(appointment) => navigate(`/patients/${appointment.patient_id}`)}
               filters={[
                 { columnId: "status", label: "Status", options: APPOINTMENT_STATUS_OPTIONS },
                 {

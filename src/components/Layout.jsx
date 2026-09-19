@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { AppBar, Toolbar, Typography, Box, Chip, Button, IconButton, useMediaQuery } from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Chip, Button, IconButton, Avatar, Tooltip, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Sidebar, { DRAWER_WIDTH } from "./Sidebar";
+
+// Roles come back from the API as SCREAMING_SNAKE_CASE codes (ADMIN,
+// HOSPITAL_ADMIN, RECEPTIONIST, DOCTOR) — fine for logic, unreadable in the
+// header. This turns "HOSPITAL_ADMIN" into "Hospital Admin".
+const formatRoleLabel = (roleCode) =>
+  (roleCode || "")
+    .split("_")
+    .filter(Boolean)
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(" ") || "—";
 
 export default function Layout({ title, subtitle, children }) {
   const { user, logout } = useAuth();
@@ -18,6 +28,8 @@ export default function Layout({ title, subtitle, children }) {
     logout();
     navigate("/login");
   };
+
+  const roleLabel = formatRoleLabel(user?.roleCode);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -45,11 +57,29 @@ export default function Layout({ title, subtitle, children }) {
               </Typography>
             </Box>
 
+            {/* Who's logged in has to be visible on every screen size, not
+                just desktop \u2014 a mobile user previously saw nothing but a
+                Log out button and had no way to tell which account/role
+                they were in. On narrow screens a single avatar (tap/long-
+                press for the tooltip with full name+role) keeps the header
+                from getting cramped next to the title and Log out button;
+                the full name+role chip takes over from sm up where there's
+                room for it. */}
+            <Tooltip title={user ? `${user.fullName} \u00B7 ${roleLabel}` : ""}>
+              <Avatar
+                sx={{
+                  width: 34, height: 34, fontSize: "0.85rem", bgcolor: "primary.main",
+                  mr: { xs: 1, sm: 2 }, display: { xs: "flex", sm: "none" }, flexShrink: 0,
+                }}
+              >
+                {(user?.fullName || "?").charAt(0).toUpperCase()}
+              </Avatar>
+            </Tooltip>
             <Chip
               icon={<PersonOutlineIcon />}
-              label={user ? `${user.fullName} \u00B7 ${user.roleCode}` : ""}
+              label={user ? `${user.fullName} \u00B7 ${roleLabel}` : ""}
               variant="outlined"
-              sx={{ mr: { xs: 0, sm: 2 }, display: { xs: "none", sm: "flex" } }}
+              sx={{ mr: 2, display: { xs: "none", sm: "flex" } }}
             />
             <Button variant="outlined" onClick={handleLogout} size={isMobile ? "small" : "medium"}>
               Log out

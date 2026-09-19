@@ -7,6 +7,7 @@ import { NAV_SECTIONS } from "../config/navConfig";
 import { isAdminRole } from "./AdminRoute";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.jpg";
+import tomcatdevsIcon from "../assets/tomcatdevs/tomcatdevs-icon-white.png";
 
 const DRAWER_WIDTH = 264;
 const SIDEBAR_BG = "#06070C";
@@ -112,6 +113,23 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             </List>
           </Box>
         ))}
+      </Box>
+
+      {/* Attribution to the agency that built this system — a single quiet
+          line rather than a stacked label+logo, so it reads as a product
+          credit (the way "Built with Stripe" or a footer copyright line
+          would) rather than a debug badge. */}
+      <Box
+        sx={{
+          px: 3, py: 2, flexShrink: 0,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 0.75,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <Box component="img" src={tomcatdevsIcon} alt="" sx={{ height: 13, width: "auto", opacity: 0.45 }} />
+        <Typography sx={{ color: "rgba(255,255,255,0.4)", fontSize: "0.7rem" }}>
+          Built by <Box component="span" sx={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>tomcatdevs</Box>
+        </Typography>
       </Box>
     </Box>
   );
